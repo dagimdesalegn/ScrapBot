@@ -1,8 +1,14 @@
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pick = (o, ...k) => { for (const x of k) if (o[x]) return o[x]; return '—'; };
+const pick = (o, ...k) => { for (const x of k) if (o[x] && o[x] !== 'undefined') return o[x]; return '—'; };
 
-function getProfile() { try { return JSON.parse(sessionStorage.getItem('ju_profile') || '{}'); } catch { return {}; } }
+function getProfile() {
+  try {
+    const p = JSON.parse(sessionStorage.getItem('ju_profile') || '{}');
+    return p;
+  } catch { return {}; }
+}
+
 function fmtECTS(n) { return Number(n || 0).toFixed(1); }
 
 function splitCourse(raw) {
@@ -46,10 +52,9 @@ function renderSemesterBlock(sem, running) {
   </div>`;
 }
 
-function renderPage(sems, isFirst, runningData) {
-  const profile = getProfile();
+function renderPage(sems, isFirst, runningData, profile, degreeYear) {
   let headerHtml = '';
-  
+
   if (isFirst) {
     headerHtml = `
       <h1>JIMMA UNIVERSITY</h1>
@@ -61,7 +66,7 @@ function renderPage(sems, isFirst, runningData) {
           <div>Jimma Institute of Technology</div>
         </div>
         <div class="mid">Medium of Instruction: English</div>
-        <div class="rt">Degree Awarded On: <span>June 25, 2026</span></div>
+        <div class="rt">Degree Awarded On: <span>${degreeYear}</span></div>
       </div>
       <div class="info-box">
         <div class="info-row">
@@ -76,7 +81,7 @@ function renderPage(sems, isFirst, runningData) {
         </div>
         <div class="info-row">
           <div class="info-cell" style="grid-column:span 2"></div>
-          <div class="info-cell"><b>Department:</b> Computer Science</div>
+          <div class="info-cell"><b>Department:</b> ${esc(pick(profile, 'Department', 'Program'))}</div>
         </div>
       </div>
     `;
@@ -118,7 +123,6 @@ function renderPage(sems, isFirst, runningData) {
       </div>
     </div>
   `;
-  return { html, tw, tc, lastCgpa };
 }
 
 (async function load() {
@@ -127,23 +131,41 @@ function renderPage(sems, isFirst, runningData) {
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || 'Fetch failed');
 
+    const profile = getProfile();
     const sems = [...j.semesters].sort((a, b) => {
       const ay = parseInt(a.year) || 0, by = parseInt(b.year) || 0;
       if (ay !== by) return ay - by;
       return String(a.text).localeCompare(String(b.text));
     });
 
+    // ---- AUTO DEGREE YEAR ----
+    let degreeYear = '—';
+    if (sems.length > 0) {
+      const lastYear = sems[sems.length - 1].year; // e.g. "2025/26"
+      if (lastYear && lastYear.includes('/')) {
+        const endYear = lastYear.split('/')[1]; // "26"
+        const fullEnd = parseInt(lastYear.split('/')[0]) + 1; // 2026
+        degreeYear = `June ${fullEnd}`;
+      } else {
+        degreeYear = lastYear || '—';
+      }
+    }
+    // -------------------------
+
     let html = '';
     let runningData = { tw: 0, tc: 0, lastCgpa: null };
-    
-    // 4 semesters per page (2x2 grid)
+
     for (let i = 0; i < sems.length; i += 4) {
       const pageSems = sems.slice(i, i + 4);
-      const res = renderPage(pageSems, i === 0, runningData);
-      html += res.html;
-      runningData.tw = res.tw;
-      runningData.tc = res.tc;
-      runningData.lastCgpa = res.lastCgpa;
+      const res = renderPage(pageSems, i === 0, runningData, profile, degreeYear);
+      html += res;
+      // Update running totals from the last semester on the page
+      const last = pageSems[pageSems.length - 1];
+      const cr = last.computed?.portalScr ?? last.computed?.totalCredits ?? 0;
+      const pt = last.computed?.portalSgp ?? last.computed?.totalPoints ?? 0;
+      runningData.tw += pt;
+      runningData.tc += cr;
+      if (last.computed?.portalCgpa) runningData.lastCgpa = last.computed.portalCgpa;
     }
 
     document.getElementById('pages-container').innerHTML = html;
