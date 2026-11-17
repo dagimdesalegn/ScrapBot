@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title>JU Academic Record</title>
+  <style>
+    /* ---------- BASE STYLES (Bold & Clean) ---------- */
+    *{ box-sizing: border-box; margin:0; padding:0; }
+    body{
+      background: #e5e7eb; 
+      font-family: 'Times New Roman', Times, serif; 
+      color: #111; 
+      font-size: 11px; 
+      line-height: 1.2; 
+      padding: 10px;
+      font-weight: 500;
+    }
+    b, th { font-weight: 700; }
+    
+    .actions{
+      position: fixed; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 100;
+    }
+    .actions button{
+      padding: 8px 14px; border-radius: 8px; border: 0; background: #2563eb;
+      color: #fff; cursor: pointer; font-weight: 700; font-family: inherit;
+    }
+    .actions button.sec{ background: #475569; }
+
+    /* ---------- PAGE LAYOUT ---------- */
+    .page{
+      width: 100%; max-width: 210mm; min-height: 297mm;
+      margin: 10px auto; padding: 8mm 6mm; background: #fff;
+      box-shadow: 0 6px 20px rgba(0,0,0,.15); position: relative;
+      display: flex; flex-direction: column; page-break-after: always;
+    }
+    .page:last-child{ page-break-after: auto; }
+    .page-content { flex: 1; display: flex; flex-direction: column; }
+
+    h1{ font-size: 18px; font-weight: 800; text-align: center; letter-spacing: .5px; }
+    .subtitle{ font-size: 14px; font-weight: 800; letter-spacing: 1px; text-align: center; margin-bottom: 12px; }
+    
+    .head{ display: flex; justify-content: space-between; font-size: 11px; line-height: 1.4; margin-bottom: 8px; font-weight: 600; }
+    .head > div{ flex: 1; }
+    .head .mid{ text-align: center; }
+    .head .rt{ text-align: right; }
+
+    .info-box{ border: 1px solid #111; font-size: 11px; margin-bottom: 12px; }
+    .info-row{ display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid #111; }
+    .info-row:last-child{ border-bottom: 0; }
+    .info-cell{ padding: 4px 6px; border-right: 1px solid #111; }
+    .info-cell:last-child{ border-right: 0; }
+
+    .continuation-head{
+      position: relative; text-align: center; font-size: 12px; font-weight: 700;
+      border-bottom: 2px solid #111; padding-bottom: 6px; margin-bottom: 12px; height: 24px;
+    }
+    .continuation-head .id-no { position: absolute; right: 0; top: 0; }
+
+    /* ---------- GRID LAYOUTS ---------- */
+    /* Page 1: Two transcript columns, three rows; stamp occupies bottom-right */
+    .grid-page1 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+      grid-auto-flow: column;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+    .grid-page1 .empty-box { border: 1px solid #111; min-height: 0; }
+    .grid-page1 .stamp-box { border: 1px solid #111; min-height: 0; }
+    
+    /* Page 2: 2 Columns x 1 Row */
+    .grid-page2 {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
+      gap: 0;
+      flex: 1;
+    }
+
+    /* ---------- SEMESTER BLOCKS ---------- */
+    .sem {
+      border: 1px solid #111; font-size: 10px;
+      display: flex; flex-direction: column; 
+      background: #fff;
+      height: 100%; /* Forces equal height */
+    }
+    .sem table { flex-grow: 1; table-layout: fixed; }
+    .sem th:nth-child(1), .sem td:nth-child(1) { width: 15%; }
+    .sem th:nth-child(2), .sem td:nth-child(2) { width: 52%; }
+    .sem th:nth-child(3), .sem td:nth-child(3) { width: 10%; }
+    .sem th:nth-child(4), .sem td:nth-child(4) { width: 9%; }
+    .sem th:nth-child(5), .sem td:nth-child(5) { width: 14%; }
+    .sem td:nth-child(2) { overflow-wrap: anywhere; }
+    .year-stack { display: grid; grid-template-rows: repeat(4, auto); align-content: start; gap: 0; min-width: 0; }
+    .year-stack .sem { height: auto; min-height: 0; }
+    .year-stack .sem + .sem { border-top: 0; } 
+    
+    .sem .titlebar {
+      text-align: center; font-weight: 700; font-size: 11px; padding: 4px 2px;
+      border-bottom: 1px solid #111; background: #eaeaea;
+    }
+    .sem .subtitle-sm {
+      text-align: center; font-style: italic; font-size: 9px;
+      padding: 3px 4px; border-bottom: 1px solid #111; font-weight: 600;
+    }
+
+    /* ---------- TABLES ---------- */
+    table{ width: 100%; border-collapse: collapse; }
+    th, td{ padding: 3px 4px; border-bottom: 1px solid #ccc; vertical-align: top; }
+    th{ font-weight: 700; font-size: 9px; text-align: left; background: #f9f9f9; border-bottom: 1px solid #111; }
+    td.num, th.num{ text-align: right; white-space: nowrap; }
+    td.center{ text-align: center; }
+
+    .totals {
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      border-top: 1px solid #111; font-weight: 700; background: #f9f9f9;
+    }
+    .totals > div { padding: 3px 4px; border-right: 1px solid #ccc; text-align: right; }
+    .totals > div:first-child { text-align: left; }
+    .totals > div:last-child { border-right: 0; }
+    
+    .summary {
+      padding: 4px; font-style: italic; font-size: 9px; font-weight: 700;
+      border-top: 1px solid #111; text-align: center; background: #f9f9f9;
+    }
+
+    /* ---------- FOOTER & STAMP ---------- */
+    .footer{
+      margin-top: auto; border-top: 1px solid #111; padding-top: 6px; font-size: 8px; line-height: 1.4;
+      font-weight: 500;
+    }
+    .footer-sign{ display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; font-size: 10px; font-weight: 700; }
+    
+    .stamp {
+      border: 2px solid #1f4ea1; color: #1f4ea1; padding: 6px 14px; transform: rotate(-5deg);
+      font-weight: 800; font-size: 12px; letter-spacing: 1px; display: inline-block;
+    }
+    .stamp-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ---------- MOBILE RESPONSIVENESS ---------- */
+    @media (max-width: 850px) {
+      .grid-page1 { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, minmax(150px, auto)); grid-auto-flow: column; }
+      .grid-page2 { grid-template-columns: 2fr 1fr; grid-template-rows: auto; }
+      .year-stack { grid-template-rows: repeat(4, auto); }
+      .page { padding: 6mm 4mm; min-height: auto; }
+      .sem { min-height: 200px; }
+      .actions button { padding: 6px 10px; font-size: 11px; }
+    }
+
+    /* ---------- PRINT ---------- */
+    @media print{
+      body{ background: #fff; padding: 0; }
+      .actions{ display: none; }
+      .page{ margin: 0; box-shadow: none; width: auto; padding: 8mm 6mm; min-height: 297mm; }
+      .grid-page1 { grid-template-columns: 1fr 1fr !important; grid-template-rows: 1fr 1fr !important; grid-auto-flow: column; }
+      .grid-page2 { grid-template-columns: 2fr 1fr !important; grid-template-rows: 1fr !important; }
+      .year-stack { grid-template-rows: repeat(4, auto); }
+    }
+  </style>
+</head>
+<body>
+  <div class="actions">
+    <button onclick="window.print()">🖨 Print / Save PDF</button>
+    <button class="sec" onclick="window.close()">Close</button>
+  </div>
+  <div id="pages-container"></div>
+  <script src="transcript.js"></script>
+</body>
+</html>
