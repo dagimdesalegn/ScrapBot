@@ -6,7 +6,6 @@ function getProfile() { try { return JSON.parse(sessionStorage.getItem('ju_profi
 function fmtECTS(n) { return Number(n || 0).toFixed(1); }
 
 function splitCourse(raw) {
-  // "Network And System Administration(CoSc 4036)" → { code:"CoSc 4036", title:"Network And System Administration" }
   const m = String(raw).match(/^(.*?)\s*\(([A-Za-z]{2,8}\s*\d{3,4})\)\s*$/);
   if (m) return { code: m[2], title: m[1] };
   return { code: '', title: raw };
@@ -36,51 +35,119 @@ function renderSemesterBlock(sem, running) {
   return `
   <div class="sem">
     <div class="titlebar">${esc(sem.text)}</div>
-    <div class="subtitle">Admitted to B.Sc. Degree in ${esc(pick(getProfile(), 'Program') || 'Computer Science')}</div>
+    <div class="subtitle-sm">Admitted to B.Sc. Degree in ${esc(pick(getProfile(), 'Program') || 'Computer Science')}</div>
     <table>
       <thead><tr><th>Code</th><th>Course Title</th><th class="num">ECTS</th><th class="center">Grade</th><th class="num">Gr.No</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="5" class="center">—</td></tr>'}</tbody>
     </table>
     <div class="totals"><div>Semester Average</div><div class="num">${sgpa}</div><div class="num">${grNoTotal}</div></div>
     <div class="totals"><div>Cumulative Average</div><div class="num">${running.cgpa != null ? running.cgpa.toFixed(2) : '—'}</div><div class="num">${running.totalPoints.toFixed(2)}</div></div>
-    <div class="summary">Summary: ${esc(c.semesterStatus || '—')} · Credits: ${creditsShown}</div>
+    <div class="summary">Summary: ${esc(c.semesterStatus || 'Promoted')} · Credits: ${creditsShown}</div>
   </div>`;
 }
 
-(async function load() {
+function renderPage(sems, isFirst, runningData) {
   const profile = getProfile();
-  $('#fullName').textContent   = pick(profile, 'Full Name', 'Name');
-  $('#idNumber').textContent   = pick(profile, 'ID Number', 'Id Number');
-  $('#dob').textContent        = pick(profile, 'Date of Birth', 'DOB');
-  $('#sex').textContent        = pick(profile, 'Sex', 'Gender');
-  $('#admission').textContent  = pick(profile, 'Admission Classification', 'Admission');
-  $('#from').textContent       = pick(profile, 'Zone', 'Region', 'From');
-  $('#department').textContent = pick(profile, 'Program', 'Department');
+  let headerHtml = '';
+  
+  if (isFirst) {
+    headerHtml = `
+      <h1>JIMMA UNIVERSITY</h1>
+      <div class="subtitle">STUDENT ACADEMIC RECORD</div>
+      <div class="head">
+        <div>
+          <div>OFFICE OF REGISTRAR</div>
+          <div>P.O.Box 378 JU, ETHIOPIA</div>
+          <div>Jimma Institute of Technology</div>
+        </div>
+        <div class="mid">Medium of Instruction: English</div>
+        <div class="rt">Degree Awarded On: <span>June 25, 2026</span></div>
+      </div>
+      <div class="info-box">
+        <div class="info-row">
+          <div class="info-cell"><b>Full Name:</b> ${esc(pick(profile, 'Full Name', 'Name'))}</div>
+          <div class="info-cell"><b>Date of Birth:</b> ${esc(pick(profile, 'Birth Date', 'Date of Birth', 'DOB'))}</div>
+          <div class="info-cell"><b>Admission Classification:</b> Regular</div>
+        </div>
+        <div class="info-row">
+          <div class="info-cell"><b>Id Number:</b> ${esc(pick(profile, 'ID Number', 'Id Number'))}</div>
+          <div class="info-cell"><b>Sex:</b> ${esc(pick(profile, 'Sex', 'Gender'))}</div>
+          <div class="info-cell"><b>From:</b> ${esc(pick(profile, 'Zone', 'From'))}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-cell" style="grid-column:span 2"></div>
+          <div class="info-cell"><b>Department:</b> Computer Science</div>
+        </div>
+      </div>
+    `;
+  } else {
+    headerHtml = `
+      <div class="continuation-head">
+        <div>FULL NAME: ${esc(pick(profile, 'Full Name', 'Name').toUpperCase())}</div>
+        <div>ID NO: ${esc(pick(profile, 'ID Number', 'Id Number'))}</div>
+      </div>
+    `;
+  }
 
+  let tw = runningData.tw;
+  let tc = runningData.tc;
+  let lastCgpa = runningData.lastCgpa;
+
+  const blocks = sems.map(sem => {
+    const cr = sem.computed?.portalScr ?? sem.computed?.totalCredits ?? 0;
+    const pt = sem.computed?.portalSgp ?? sem.computed?.totalPoints ?? 0;
+    if (cr > 0) { tw += pt; tc += cr; }
+    if (sem.computed?.portalCgpa) lastCgpa = sem.computed.portalCgpa;
+    const runningCgpa = lastCgpa ?? (tc > 0 ? tw / tc : null);
+    return renderSemesterBlock(sem, { totalPoints: tw, cgpa: runningCgpa });
+  }).join('');
+
+  return `
+    <div class="page">
+      <div class="page-content">
+        ${headerHtml}
+        <div class="grid">${blocks}</div>
+      </div>
+      <div class="stamp">STUDENT COPY</div>
+      <div class="footer">
+        <div><b>Grading System:</b> P = Pass, A+ = Excellent, A = Excellent, A− = Excellent, B+ = Very Good, B = Very Good, B− = Good, C+ = Good, C = Satisfactory, C− = Satisfactory, D = Unsatisfactory, F = Fail, I = Incomplete, NG = No Grade, W = Withdrawn. Points: A+ = 4, A = 4, A− = 3.75, B+ = 3.5, B = 3, B− = 2.75, C+ = 2.5, C = 2, C− = 1.75, D = 1, F = 0. *Course Repeated; TR = Credit Transfer. THE TRANSCRIPT IS OFFICIAL ONLY WHEN SIGNED AND SEALED BY THE REGISTRAR.</div>
+        <div class="footer-sign">
+          <div>Date of Issue: __________________</div>
+          <div>_____________________<br>Registrar</div>
+        </div>
+      </div>
+    </div>
+  `;
+  return { html, tw, tc, lastCgpa };
+}
+
+(async function load() {
   try {
     const r = await fetch('/api/all-semesters', { credentials: 'same-origin' });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || 'Fetch failed');
 
-    // Display oldest → newest so CGPA increments correctly per row.
     const sems = [...j.semesters].sort((a, b) => {
       const ay = parseInt(a.year) || 0, by = parseInt(b.year) || 0;
       if (ay !== by) return ay - by;
       return String(a.text).localeCompare(String(b.text));
     });
 
-    let tw = 0, tc = 0, lastCgpa = null;
-    const blocks = sems.map(sem => {
-      const cr = sem.computed?.portalScr ?? sem.computed?.totalCredits ?? 0;
-      const pt = sem.computed?.portalSgp ?? sem.computed?.totalPoints ?? 0;
-      if (cr > 0) { tw += pt; tc += cr; }
-      if (sem.computed?.portalCgpa) lastCgpa = sem.computed.portalCgpa;
-      const runningCgpa = lastCgpa ?? (tc > 0 ? tw / tc : null);
-      return renderSemesterBlock(sem, { totalPoints: tw, cgpa: runningCgpa });
-    });
+    let html = '';
+    let runningData = { tw: 0, tc: 0, lastCgpa: null };
+    
+    // 4 semesters per page (2x2 grid)
+    for (let i = 0; i < sems.length; i += 4) {
+      const pageSems = sems.slice(i, i + 4);
+      const res = renderPage(pageSems, i === 0, runningData);
+      html += res.html;
+      runningData.tw = res.tw;
+      runningData.tc = res.tc;
+      runningData.lastCgpa = res.lastCgpa;
+    }
 
-    $('#semestersGrid').innerHTML = blocks.join('');
+    document.getElementById('pages-container').innerHTML = html;
   } catch (e) {
-    $('#semestersGrid').innerHTML = `<p style="padding:10px;color:#b91c1c">${esc(e.message)}</p>`;
+    document.getElementById('pages-container').innerHTML = `<p style="padding:20px;color:red">${esc(e.message)}</p>`;
   }
 })();
