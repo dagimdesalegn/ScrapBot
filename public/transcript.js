@@ -8,17 +8,29 @@ function getProfile() {
 
 function fmtECTS(n) { return Number(n || 0).toFixed(1); }
 
+// Fully robust parser to separate "FLEN 1011" from the title string.
 function splitCourse(raw) {
-  let title = String(raw || '');
+  let title = String(raw || '').trim();
   let code = '';
+  
+  // Try matching (Code) at the end
   let m = title.match(/^(.*?)\s*\(([A-Za-z]{2,8}\s*\d{3,4})\)\s*$/);
   if (m) {
-    title = m[1]; code = m[2];
+    title = m[1].trim(); 
+    code = m[2].trim();
   } else {
-    m = title.match(/^([A-Za-z]{2,8}\s*\d{3,4})\s+(.*)$/);
-    if (m) { code = m[1]; title = m[2]; }
+    // Try matching Code at the beginning (allows zero or more spaces between letters/numbers)
+    m = title.match(/^([A-Za-z]{2,8}\s*\d{3,4})\s*(.*)$/);
+    if (m) { 
+      code = m[1].trim(); 
+      title = m[2].trim(); 
+    }
   }
-  if (code) code = code.replace(/^([A-Za-z]+)\s*(\d+)/, '$1 $2');
+  
+  // Ensure code has a space (e.g. FLEN1011 -> FLEN 1011)
+  if (code) {
+    code = code.replace(/^([A-Za-z]+)\s*(\d+)/, '$1 $2');
+  }
   return { code, title };
 }
 
@@ -29,7 +41,9 @@ function renderSemesterBlock(sem, running) {
     const sc = splitCourse(course.name);
     const ects = course.credit || 0;
     const grade = course.grade || '—';
+    // 0.00 for non-graded
     const grNo = course.point != null ? (course.point * ects).toFixed(2) : '0.00';
+    
     return '<tr>' +
       '<td>' + esc(sc.code) + '</td>' +
       '<td>' + esc(sc.title) + '</td>' +
@@ -91,9 +105,11 @@ function buildPageHeader(isFirst, profile, degreeYear) {
         '</div>' +
       '</div>';
   }
+  
+  // Centered Full Name on Page 2, ID on the right
   return '<div class="continuation-head">' +
     '<div>FULL NAME: ' + esc(pick(profile, 'Full Name', 'Name').toUpperCase()) + '</div>' +
-    '<div>ID NO: ' + esc(pick(profile, 'ID Number', 'Id Number')) + '</div>' +
+    '<div class="id-no">ID NO: ' + esc(pick(profile, 'ID Number', 'Id Number')) + '</div>' +
   '</div>';
 }
 
@@ -139,7 +155,7 @@ async function load() {
     let html = '';
     const running = { cr: 0, pt: 0 };
 
-    // Page 1 (Years 1 & 2)
+    // Page 1 (Years 1 & 2) + Empty 3rd Grid Box
     if (years.length > 0) {
       const y1 = grouped[years[0]] || [];
       const y2 = years.length > 1 ? grouped[years[1]] : [];
@@ -159,7 +175,7 @@ async function load() {
       '</div>';
     }
 
-    // Page 2 (Years 3 & 4)
+    // Page 2 (Years 3 & 4) + Empty Box for stamp on right
     if (years.length > 2) {
       let leftCol = '';
       for (let i = 2; i < years.length; i++) {
