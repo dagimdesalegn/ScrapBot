@@ -5,32 +5,27 @@ const pick = (o, ...k) => { for (const x of k) if (o && o[x] && o[x] !== 'undefi
 function getProfile() {
   try { return JSON.parse(sessionStorage.getItem('ju_profile') || '{}'); } catch { return {}; }
 }
-
 function fmtECTS(n) { return Number(n || 0).toFixed(1); }
 
-// Fully robust parser to separate "FLEN 1011" from the title string.
+// Bulletproof course code parser
 function splitCourse(raw) {
-  let title = String(raw || '').trim();
+  let str = String(raw || '').trim();
   let code = '';
-  
-  // Try matching (Code) at the end
-  let m = title.match(/^(.*?)\s*\(([A-Za-z]{2,8}\s*\d{3,4})\)\s*$/);
-  if (m) {
-    title = m[1].trim(); 
-    code = m[2].trim();
-  } else {
-    // Try matching Code at the beginning (allows zero or more spaces between letters/numbers)
-    m = title.match(/^([A-Za-z]{2,8}\s*\d{3,4})\s*(.*)$/);
-    if (m) { 
-      code = m[1].trim(); 
-      title = m[2].trim(); 
-    }
-  }
-  
-  // Ensure code has a space (e.g. FLEN1011 -> FLEN 1011)
-  if (code) {
+  let title = str;
+
+  // Matches typical code format anywhere in the string: 2-6 letters followed by 3-4 numbers
+  // Handles "FLEN 1011", "CoSc4036", "(CoSc 4036)"
+  const codeRegex = /\(?([A-Za-z]{2,6}\s*\d{3,4})\)?/;
+  const match = str.match(codeRegex);
+
+  if (match) {
+    code = match[1].replace(/\s+/g, ' '); 
+    // Ensure a space between letters and numbers (FLEN1011 -> FLEN 1011)
     code = code.replace(/^([A-Za-z]+)\s*(\d+)/, '$1 $2');
+    // Remove code from title and clean up parens
+    title = str.replace(match[0], '').replace(/[()]/g, '').trim();
   }
+
   return { code, title };
 }
 
@@ -41,7 +36,6 @@ function renderSemesterBlock(sem, running) {
     const sc = splitCourse(course.name);
     const ects = course.credit || 0;
     const grade = course.grade || '—';
-    // 0.00 for non-graded
     const grNo = course.point != null ? (course.point * ects).toFixed(2) : '0.00';
     
     return '<tr>' +
@@ -106,7 +100,6 @@ function buildPageHeader(isFirst, profile, degreeYear) {
       '</div>';
   }
   
-  // Centered Full Name on Page 2, ID on the right
   return '<div class="continuation-head">' +
     '<div>FULL NAME: ' + esc(pick(profile, 'Full Name', 'Name').toUpperCase()) + '</div>' +
     '<div class="id-no">ID NO: ' + esc(pick(profile, 'ID Number', 'Id Number')) + '</div>' +
@@ -155,27 +148,35 @@ async function load() {
     let html = '';
     const running = { cr: 0, pt: 0 };
 
-    // Page 1 (Years 1 & 2) + Empty 3rd Grid Box
+    // Page 1 (Years 1 & 2) + Split 3rd Grid Box
     if (years.length > 0) {
       const y1 = grouped[years[0]] || [];
       const y2 = years.length > 1 ? grouped[years[1]] : [];
       let leftCol = y1.map(s => renderSemesterBlock(s, running)).join('');
       let midCol  = y2.map(s => renderSemesterBlock(s, running)).join('');
       
+      // 3rd Column: Top empty box, bottom box with stamp
+      const rightCol = '<div class="col">' +
+          '<div class="sem"></div>' +
+          '<div class="sem" style="display:flex; align-items:center; justify-content:center;">' +
+              '<div class="stamp">STUDENT COPY</div>' +
+          '</div>' +
+      '</div>';
+
       html += '<div class="page">' +
         '<div class="page-content">' +
           buildPageHeader(true, profile, degreeYear) +
           '<div class="grid-page1">' +
             '<div class="col">' + leftCol + '</div>' +
             '<div class="col">' + midCol + '</div>' +
-            '<div class="col empty-col"><div class="stamp">STUDENT COPY</div></div>' +
+            rightCol +
           '</div>' +
         '</div>' +
         buildFooter() +
       '</div>';
     }
 
-    // Page 2 (Years 3 & 4) + Empty Box for stamp on right
+    // Page 2 (Years 3 & 4) + Stamp in a single right box
     if (years.length > 2) {
       let leftCol = '';
       for (let i = 2; i < years.length; i++) {
@@ -186,7 +187,9 @@ async function load() {
           buildPageHeader(false, profile, degreeYear) +
           '<div class="grid-page2">' +
             '<div class="col">' + leftCol + '</div>' +
-            '<div class="col empty-col"><div class="stamp">STUDENT COPY</div></div>' +
+            '<div class="sem" style="display:flex; align-items:center; justify-content:center;">' +
+                '<div class="stamp">STUDENT COPY</div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         buildFooter() +
