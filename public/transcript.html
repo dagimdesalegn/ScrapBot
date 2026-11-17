@@ -12,7 +12,7 @@
       font-family: "Times New Roman", Times, serif;
       color: #111;
       font-size: 11px;
-      line-height: 1.35;
+      line-height: 1.3;
       -webkit-font-smoothing: antialiased;
       padding: 10px;
     }
@@ -44,9 +44,9 @@
     }
     .page:last-child{ page-break-after: auto; }
 
-    /* ---------- HEADER (first page only) ---------- */
-    h1{ font-size: 15px; font-weight: bold; text-align: center; letter-spacing: .5px; }
-    .subtitle{ font-size: 13px; font-weight: bold; letter-spacing: 1px; text-align: center; margin-bottom: 8px; }
+    /* ---------- HEADER (First page) ---------- */
+    h1{ font-size: 16px; font-weight: bold; text-align: center; letter-spacing: .5px; }
+    .subtitle{ font-size: 14px; font-weight: bold; letter-spacing: 1px; text-align: center; margin-bottom: 8px; }
     .head{
       display: flex; justify-content: space-between;
       font-size: 10px; line-height: 1.35; margin-bottom: 6px;
@@ -67,7 +67,7 @@
     .info-cell:last-child{ border-right: 0; }
     .info-cell b{ font-weight: bold; }
 
-    /* ---------- CONTINUATION HEADER (pages 2+) ---------- */
+    /* ---------- CONTINUATION HEADER (Page 2+) ---------- */
     .continuation-head{
       display: flex; justify-content: space-between;
       font-size: 10px; font-weight: bold;
@@ -75,22 +75,30 @@
       padding-bottom: 4px; margin-bottom: 10px;
     }
 
-    /* ---------- SEMESTER GRID ---------- */
-    .grid{
-      display: grid;
-      grid-template-columns: 1fr 1fr; /* two columns on all screens */
+    /* ---------- FLEX LAYOUT FOR YEARS ---------- */
+    .flex-cols {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       gap: 10px;
     }
-    .sem{
+
+    /* ---------- SEMESTER BLOCKS ---------- */
+    .sem {
       border: 1px solid #111; font-size: 9px;
       page-break-inside: avoid;
     }
-    .sem .titlebar{
+    .sem .titlebar {
       text-align: center; font-weight: bold;
       padding: 3px 2px; border-bottom: 1px solid #111;
       background: #eaeaea;
     }
-    .sem .subtitle-sm{
+    .sem .subtitle-sm {
       text-align: center; font-style: italic;
       font-size: 8px; padding: 2px 3px;
       border-bottom: 1px solid #111;
@@ -106,21 +114,24 @@
     td.num, th.num{ text-align: right; white-space: nowrap; }
     td.center{ text-align: center; }
 
-    .totals{
-      display: grid; grid-template-columns: 1fr auto auto;
+    /* ---------- TOTALS ROW (4 columns) ---------- */
+    .totals {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto; /* Avg | ECTS | Gr.No */
       border-top: 1px solid #111; font-weight: bold; background: #f9f9f9;
     }
-    .totals > div{ padding: 2px 3px; border-right: 1px solid #ccc; }
-    .totals > div:last-child{ border-right: 0; }
+    .totals > div { padding: 2px 3px; border-right: 1px solid #ccc; text-align: right; }
+    .totals > div:first-child { text-align: left; }
+    .totals > div:last-child { border-right: 0; }
 
-    .summary{
+    .summary {
       padding: 2px 3px; font-style: italic; font-size: 8px;
       border-top: 1px solid #111; text-align: center; background: #f9f9f9;
     }
 
     /* ---------- FOOTER ---------- */
     .footer{
-      margin-top: 10px; border-top: 1px solid #111;
+      margin-top: auto; border-top: 1px solid #111;
       padding-top: 4px; font-size: 7px; line-height: 1.3;
       text-align: justify;
     }
@@ -135,17 +146,15 @@
       position: absolute; right: 15mm; bottom: 30mm;
     }
 
-    /* ---------- MOBILE SAFETY ---------- */
-    @media (max-width: 600px){
-      body{ padding: 6px; }
-      .page{ padding: 6mm 4mm; min-height: auto; }
-      .grid{ gap: 6px; }
-      .sem{ font-size: 8.5px; }
-      th, td{ padding: 1.5px 2px; }
-      .actions button{ padding: 6px 10px; font-size: 11px; }
+    /* ---------- MOBILE RESPONSIVENESS (No Scroll) ---------- */
+    @media (max-width: 768px) {
+      .flex-cols { flex-direction: column; gap: 8px; }
+      .page { padding: 6mm 4mm; min-height: auto; }
+      .stamp { right: 5mm; bottom: 15mm; }
+      .actions button { padding: 6px 10px; font-size: 11px; }
     }
 
-    /* ---------- PRINT (STRICT A4 2-PAGE) ---------- */
+    /* ---------- PRINT (STRICT A4) ---------- */
     @media print{
       body{ background: #fff; padding: 0; }
       .actions{ display: none; }
@@ -154,9 +163,7 @@
         padding: 8mm 6mm;
         min-height: 297mm;
       }
-      .grid{ gap: 8px; }
-      .sem{ font-size: 9px; }
-      .stamp{ right: 15mm; bottom: 28mm; }
+      .flex-cols { flex-direction: row !important; } /* Force row for print */
     }
   </style>
 </head>
