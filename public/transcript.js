@@ -1,245 +1,143 @@
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pick = (o, ...k) => { for (const x of k) if (o[x] && o[x] !== 'undefined') return o[x]; return '—'; };
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title>JU Academic Record</title>
+  <style>
+    *{ box-sizing: border-box; margin:0; padding:0; }
+    body{
+      background: #e5e7eb; font-family: "Times New Roman", Times, serif;
+      color: #111; font-size: 11px; line-height: 1.3; padding: 10px;
+    }
+    .actions{
+      position: fixed; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 100;
+    }
+    .actions button{
+      padding: 8px 14px; border-radius: 8px; border: 0; background: #2563eb;
+      color: #fff; cursor: pointer; font-weight: 600; font-family: system-ui, sans-serif;
+    }
+    .actions button.sec{ background: #475569; }
 
-function getProfile() {
-  try {
-    const p = JSON.parse(sessionStorage.getItem('ju_profile') || '{}');
-    return p;
-  } catch { return {}; }
-}
+    .page{
+      width: 100%; max-width: 210mm; min-height: 297mm;
+      margin: 10px auto; padding: 8mm 6mm; background: #fff;
+      box-shadow: 0 6px 20px rgba(0,0,0,.15); position: relative;
+      display: flex; flex-direction: column; page-break-after: always;
+    }
+    .page:last-child{ page-break-after: auto; }
+    .page-content { flex: 1; display: flex; flex-direction: column; }
 
-function fmtECTS(n) { return Number(n || 0).toFixed(1); }
+    h1{ font-size: 16px; font-weight: bold; text-align: center; letter-spacing: .5px; }
+    .subtitle{ font-size: 14px; font-weight: bold; letter-spacing: 1px; text-align: center; margin-bottom: 8px; }
+    .head{ display: flex; justify-content: space-between; font-size: 10px; line-height: 1.35; margin-bottom: 6px; }
+    .head > div{ flex: 1; }
+    .head .mid{ text-align: center; }
+    .head .rt{ text-align: right; }
 
-// Format "FLEN1011" to "FLEN 1011" for common courses
-function splitCourse(raw) {
-  const m = String(raw).match(/^(.*?)\s*\(([A-Za-z]{2,8}\s*\d{3,4})\)\s*$/);
-  if (m) {
-    let title = m[1];
-    let code = m[2];
-    // If code is "FLEN1011", insert space
-    code = code.replace(/^([A-Za-z]+)(\d+)/, '$1 $2');
-    return { code, title };
-  }
-  return { code: '', title: raw };
-}
+    .info-box{ border: 1px solid #111; font-size: 10px; margin-bottom: 10px; }
+    .info-row{ display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid #111; }
+    .info-row:last-child{ border-bottom: 0; }
+    .info-cell{ padding: 3px 5px; border-right: 1px solid #111; }
+    .info-cell:last-child{ border-right: 0; }
 
-function renderSemesterBlock(sem, running, isFirstSem) {
-  const c = sem.computed || { courses: [], totalCredits: 0, totalPoints: 0, sgpa: null };
-  
-  const rows = c.courses.map(course => {
-    const { code, title } = splitCourse(course.name);
-    const ects = course.credit || 0;
-    
-    // Grade fallback
-    const grade = course.grade || '—';
-    // Grade Point Number: If point is null (like I, P, etc), force 0.00
-    const grNo = course.point != null ? (course.point * ects).toFixed(2) : '0.00';
-    
-    return `<tr>
-      <td>${esc(code)}</td>
-      <td>${esc(title)}</td>
-      <td class="num">${fmtECTS(ects)}</td>
-      <td class="center">${esc(grade)}</td>
-      <td class="num">${grNo}</td>
-    </tr>`;
-  }).join('');
-
-  const sgpaVal = c.portalSgpa ?? c.sgpa;
-  const sgpa = sgpaVal != null ? Number(sgpaVal).toFixed(2) : '—';
-  const grNoTotal = Number(c.portalSgp ?? c.totalPoints ?? 0).toFixed(2);
-  const creditsShown = c.portalScr ?? c.totalCredits ?? 0;
-  const summaryText = c.semesterStatus || 'Promoted';
-
-  // Note: If this is the first semester of the year, it needs a margin top
-  return `
-  <div class="sem" ${isFirstSem ? '' : 'style="margin-top:5px"'}>
-    <div class="titlebar">${esc(sem.text)}</div>
-    <div class="subtitle-sm">Admitted to B.Sc. Degree in ${esc(pick(getProfile(), 'Program') || 'Computer Science')}</div>
-    <table>
-      <thead><tr><th>Code</th><th>Course Title</th><th class="num">ECTS</th><th class="center">Grade</th><th class="num">Gr.No</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5" class="center">—</td></tr>'}</tbody>
-    </table>
-    <div class="totals">
-      <div>Semester Average</div>
-      <div>${sgpa}</div>
-      <div>${creditsShown}</div>
-      <div>${grNoTotal}</div>
-    </div>
-    <div class="summary">Summary: ${esc(summaryText)}</div>
-  </div>`;
-}
-
-function buildPageHeader(isFirst, profile, degreeYear) {
-  if (isFirst) {
-    return `
-      <h1>JIMMA UNIVERSITY</h1>
-      <div class="subtitle">STUDENT ACADEMIC RECORD</div>
-      <div class="head">
-        <div>
-          <div>OFFICE OF REGISTRAR</div>
-          <div>P.O.Box 378 JU, ETHIOPIA</div>
-          <div>Jimma Institute of Technology</div>
-        </div>
-        <div class="mid">Medium of Instruction: English</div>
-        <div class="rt">Degree Awarded On: <span>${degreeYear}</span></div>
-      </div>
-      <div class="info-box">
-        <div class="info-row">
-          <div class="info-cell"><b>Full Name:</b> ${esc(pick(profile, 'Full Name', 'Name'))}</div>
-          <div class="info-cell"><b>Date of Birth:</b> ${esc(pick(profile, 'Birth Date', 'Date of Birth', 'DOB'))}</div>
-          <div class="info-cell"><b>Admission Classification:</b> Regular</div>
-        </div>
-        <div class="info-row">
-          <div class="info-cell"><b>Id Number:</b> ${esc(pick(profile, 'ID Number', 'Id Number'))}</div>
-          <div class="info-cell"><b>Sex:</b> ${esc(pick(profile, 'Sex', 'Gender'))}</div>
-          <div class="info-cell"><b>From:</b> ${esc(pick(profile, 'Zone', 'From'))}</div>
-        </div>
-        <div class="info-row">
-          <div class="info-cell" style="grid-column:span 2"></div>
-          <div class="info-cell"><b>Department:</b> ${esc(pick(profile, 'Department', 'Program'))}</div>
-        </div>
-      </div>
-    `;
-  } else {
-    return `
-      <div class="continuation-head">
-        <div>FULL NAME: ${esc(pick(profile, 'Full Name', 'Name').toUpperCase())}</div>
-        <div>ID NO: ${esc(pick(profile, 'ID Number', 'Id Number'))}</div>
-      </div>
-    `;
-  }
-}
-
-function buildFooter() {
-  return `
-    <div class="stamp">STUDENT COPY</div>
-    <div class="footer">
-      <div><b>Grading System:</b> P = Pass, A+ = Excellent, A = Excellent, A− = Excellent, B+ = Very Good, B = Very Good, B− = Good, C+ = Good, C = Satisfactory, C− = Satisfactory, D = Unsatisfactory, F = Fail, I = Incomplete, NG = No Grade, W = Withdrawn. Points: A+ = 4, A = 4, A− = 3.75, B+ = 3.5, B = 3, B− = 2.75, C+ = 2.5, C = 2, C− = 1.75, D = 1, F = 0. *Course Repeated; TR = Credit Transfer. THE TRANSCRIPT IS OFFICIAL ONLY WHEN SIGNED AND SEALED BY THE REGISTRAR.</div>
-      <div class="footer-sign">
-        <div>Date of Issue: __________________</div>
-        <div>_____________________<br>Registrar</div>
-      </div>
-    </div>
-  `;
-}
-
-(async function load() {
-  try {
-    const r = await fetch('/api/all-semesters', { credentials: 'same-origin' });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || 'Fetch failed');
-
-    const profile = getProfile();
-    
-    // Sort chronologically
-    const sems = [...j.semesters].sort((a, b) => {
-      const ay = parseInt(a.year) || 0, by = parseInt(b.year) || 0;
-      if (ay !== by) return ay - by;
-      return String(a.text).localeCompare(String(b.text));
-    });
-
-    // Auto Degree Year (based on latest semester)
-    let degreeYear = '—';
-    if (sems.length > 0) {
-      const lastYear = sems[sems.length - 1].year;
-      if (lastYear && lastYear.includes('/')) {
-        const parts = lastYear.split('/');
-        const endYear = parseInt(parts[0]) + 1;
-        degreeYear = `June ${endYear}`;
-      }
+    .continuation-head{
+      display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;
+      border-bottom: 2px solid #111; padding-bottom: 4px; margin-bottom: 10px;
     }
 
-    // Group by Year (1, 2, 3, 4)
-    const groupedByYear = {};
-    sems.forEach(sem => {
-      const y = parseInt(sem.year) || 0;
-      if (!groupedByYear[y]) groupedByYear[y] = [];
-      groupedByYear[y].push(sem);
-    });
-
-    const years = Object.keys(groupedByYear).sort((a,b) => a-b);
-    let html = '';
-
-    let runningData = { tw: 0, tc: 0, lastCgpa: null };
-
-    // ================= PAGE 1 (Years 1 & 2) =================
-    if (years.length > 0) {
-      const y1Sems = groupedByYear[years[0]] || [];
-      const y2Sems = years.length > 1 ? groupedByYear[years[1]] : [];
-
-      let leftHtml = '';
-      let rightHtml = '';
-
-      y1Sems.forEach((sem, idx) => {
-        const cr = sem.computed?.portalScr ?? sem.computed?.totalCredits ?? 0;
-        const pt = sem.computed?.portalSgp ?? sem.computed?.totalPoints ?? 0;
-        if (cr > 0) { runningData.tw += pt; runningData.tc += cr; }
-        if (sem.computed?.portalCgpa) runningData.lastCgpa = sem.computed.portalCgpa;
-        const runCgpa = runningData.lastCgpa ?? (runningData.tc > 0 ? runningData.tw / runningData.tc : null);
-        leftHtml += renderSemesterBlock(sem, { totalPoints: runningData.tw, cgpa: runCgpa }, idx === 0);
-      });
-
-      y2Sems.forEach((sem, idx) => {
-        const cr = sem.computed?.portalScr ?? sem.computed?.totalCredits ?? 0;
-        const pt = sem.computed?.portalSgp ?? sem.computed?.totalPoints ?? 0;
-        if (cr > 0) { runningData.tw += pt; runningData.tc += cr; }
-        if (sem.computed?.portalCgpa) runningData.lastCgpa = sem.computed.portalCgpa;
-        const runCgpa = runningData.lastCgpa ?? (runningData.tc > 0 ? runningData.tw / runningData.tc : null);
-        rightHtml += renderSemesterBlock(sem, { totalPoints: runningData.tw, cgpa: runCgpa }, idx === 0);
-      });
-
-      html += `
-        <div class="page">
-          <div class="page-content" style="flex:1;">
-            ${buildPageHeader(true, profile, degreeYear)}
-            <div class="flex-cols">
-              <div class="col">${leftHtml}</div>
-              <div class="col">${rightHtml}</div>
-            </div>
-          </div>
-          ${buildFooter()}
-        </div>
-      `;
+    /* Grid Layouts */
+    .grid-page1 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      align-items: stretch; /* Makes boxes equal height */
+    }
+    .grid-page2 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .empty-col {
+      display: flex;
+      align-items: flex-end; /* Pushes stamp to bottom */
+      justify-content: center;
+      min-height: 100%;
     }
 
-    // ================= PAGE 2 (Years 3 & 4) =================
-    if (years.length > 2) {
-      let leftHtml = '';
-      let hasSems = false;
-
-      for (let i = 2; i < years.length; i++) {
-        const ySems = groupedByYear[years[i]] || [];
-        ySems.forEach((sem, idx) => {
-          const cr = sem.computed?.portalScr ?? sem.computed?.totalCredits ?? 0;
-          const pt = sem.computed?.portalSgp ?? sem.computed?.totalPoints ?? 0;
-          if (cr > 0) { runningData.tw += pt; runningData.tc += cr; }
-          if (sem.computed?.portalCgpa) runningData.lastCgpa = sem.computed.portalCgpa;
-          const runCgpa = runningData.lastCgpa ?? (runningData.tc > 0 ? runningData.tw / runningData.tc : null);
-          
-          leftHtml += renderSemesterBlock(sem, { totalPoints: runningData.tw, cgpa: runCgpa }, idx === 0);
-          hasSems = true;
-        });
-      }
-
-      if (hasSems) {
-        html += `
-          <div class="page">
-            <div class="page-content" style="flex:1;">
-              ${buildPageHeader(false, profile, degreeYear)}
-              <div class="flex-cols" style="width: 100%;">
-                <div class="col">${leftHtml}</div>
-                <!-- Right side intentionally empty to match the image layout -->
-              </div>
-            </div>
-            ${buildFooter()}
-          </div>
-        `;
-      }
+    /* Semester Block */
+    .sem {
+      border: 1px solid #111; font-size: 9px;
+      display: flex; flex-direction: column; height: 100%;
+    }
+    .sem table { flex-grow: 1; } /* Pushes totals/summary to bottom */
+    .sem .titlebar {
+      text-align: center; font-weight: bold; padding: 3px 2px;
+      border-bottom: 1px solid #111; background: #eaeaea;
+    }
+    .sem .subtitle-sm {
+      text-align: center; font-style: italic; font-size: 8px;
+      padding: 2px 3px; border-bottom: 1px solid #111;
     }
 
-    document.getElementById('pages-container').innerHTML = html;
-  } catch (e) {
-    document.getElementById('pages-container').innerHTML = `<p style="padding:20px;color:red">${esc(e.message)}</p>`;
-  }
-})();
+    table{ width: 100%; border-collapse: collapse; }
+    th, td{ padding: 2px 3px; border-bottom: 1px solid #ccc; vertical-align: top; }
+    th{ font-weight: bold; font-size: 8px; text-align: left; background: #f9f9f9; border-bottom: 1px solid #111; }
+    td.num, th.num{ text-align: right; white-space: nowrap; }
+    td.center{ text-align: center; }
+
+    .totals {
+      display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      border-top: 1px solid #111; font-weight: bold; background: #f9f9f9;
+    }
+    .totals > div { padding: 2px 3px; border-right: 1px solid #ccc; text-align: right; }
+    .totals > div:first-child { text-align: left; }
+    .totals > div:last-child { border-right: 0; }
+    .summary {
+      padding: 2px 3px; font-style: italic; font-size: 8px;
+      border-top: 1px solid #111; text-align: center; background: #f9f9f9;
+    }
+
+    .footer{
+      margin-top: auto; border-top: 1px solid #111; padding-top: 4px; font-size: 7px; line-height: 1.3;
+    }
+    .footer-sign{ display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px; font-size: 9px; }
+    
+    .stamp{
+      border: 2px solid #1f4ea1; color: #1f4ea1; padding: 4px 12px; transform: rotate(-5deg);
+      font-weight: bold; font-size: 11px; letter-spacing: 1px; display: inline-block;
+    }
+
+    /* Mobile responsiveness (No Scroll) */
+    @media (max-width: 850px) {
+      .grid-page1, .grid-page2 { grid-template-columns: 1fr; }
+      .empty-col { min-height: 150px; margin-top: 20px; }
+      .page { padding: 6mm 4mm; min-height: auto; }
+      .actions button { padding: 6px 10px; font-size: 11px; }
+    }
+
+    /* Print Strict A4 */
+    @media print{
+      body{ background: #fff; padding: 0; }
+      .actions{ display: none; }
+      .page{ margin: 0; box-shadow: none; width: auto; padding: 8mm 6mm; min-height: 297mm; }
+      .grid-page1 { grid-template-columns: 1fr 1fr 1fr !important; }
+      .grid-page2 { grid-template-columns: 2fr 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="actions">
+    <button onclick="window.print()">🖨 Print / Save PDF</button>
+    <button class="sec" onclick="window.close()">Close</button>
+  </div>
+  <div id="pages-container"></div>
+  <script src="transcript.js"></script>
+</body>
+</html>
