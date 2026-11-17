@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>JU Portal</title>
+  <style>
+    :root{--bg:#0f172a;--card:#1e293b;--line:#334155;--text:#e2e8f0;--muted:#94a3b8;--accent:#2563eb;--good:#22c55e;--bad:#ef4444}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .wrap{max-width:960px;margin:0 auto;padding:24px}
+    h1{margin:0 0 4px;font-size:1.6rem}
+    .sub{color:var(--muted);margin-bottom:20px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+    label{display:block;margin:12px 0 6px;color:var(--muted);font-size:.9rem}
+    input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0b1220;color:var(--text);font-size:1rem}
+    button{padding:12px 16px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;font-size:1rem;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+    .row > button{flex:1 1 auto;min-width:140px}
+    .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+    .tabs button{background:transparent;border:1px solid var(--line);color:var(--muted)}
+    .tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+    .tile{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer}
+    .tile:hover{border-color:var(--accent)}
+    .tile h3{margin:0 0 6px;font-size:.95rem}
+    .tile p{margin:0;color:var(--muted);font-size:.85rem}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.9rem}
+    th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+    th{color:var(--muted);font-weight:500}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.75rem;background:#0b1220;border:1px solid var(--line)}
+    .ok{color:var(--good)} .err{color:var(--bad)}
+    .hidden{display:none}
+    .toast{position:fixed;bottom:20px;right:20px;padding:12px 16px;border-radius:10px;background:var(--card);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loginView">
+    <h1>🏛 JU Student Portal</h1>
+    <div class="sub">Sign in with your Jimma University portal credentials.</div>
+    <div class="card">
+      <label for="u">Username</label>
+      <input id="u" autocomplete="username" placeholder="ju123456">
+      <label for="p">Password</label>
+      <input id="p" type="password" autocomplete="current-password">
+      <div class="row"><button id="loginBtn">🔐 Sign in</button></div>
+      <p id="loginMsg" class="hidden"></p>
+    </div>
+  </div>
+
+  <div id="appView" class="hidden">
+    <h1 id="hello">Welcome</h1>
+    <div class="sub" id="helloSub"></div>
+    <div class="tabs">
+      <button data-tab="grades" class="active">📚 Grades</button>
+      <button data-tab="gpa">🧮 GPA</button>
+      <button data-tab="profile">👤 Profile</button>
+      <button id="transcriptBtn">📄 Transcript</button>
+      <button id="logoutBtn">🚪 Logout</button>
+    </div>
+
+    <div id="tabGrades" class="card">
+      <div id="yearsList" class="grid"></div>
+      <div id="semestersList" class="grid hidden"></div>
+      <div id="courseList" class="hidden"></div>
+    </div>
+
+    <div id="tabGpa" class="card hidden">
+      <p class="sub">Calculated from all available semesters.</p>
+      <div id="gpaOut"></div>
+    </div>
+
+    <div id="tabProfile" class="card hidden">
+      <div id="profileOut"></div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
