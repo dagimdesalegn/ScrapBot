@@ -72,8 +72,12 @@ $('#transcriptBtn').addEventListener('click', () => window.open('/transcript.htm
 
 $$('.tabs [data-tab]').forEach(b => b.addEventListener('click', () => {
   $$('.tabs [data-tab]').forEach(x => x.classList.toggle('active', x === b));
-  ['Grades','Gpa','Profile'].forEach(t => $('#tab'+t).classList.toggle('hidden', t.toLowerCase() !== b.dataset.tab));
-  if (b.dataset.tab === 'gpa') loadGPA();
+  const tabName = b.dataset.tab;
+  ['grades', 'gpa', 'profile'].forEach(t => {
+    const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (el) el.classList.toggle('hidden', t !== tabName);
+  });
+  if (tabName === 'gpa') loadGPA();
 }));
 
 function renderYears() {
@@ -205,7 +209,6 @@ function renderProfile() {
   $('#profileOut').innerHTML = `<table><tbody>${rows || '<tr><td style="color:var(--muted)">No profile data</td></tr>'}</tbody></table>`;
 }
 
-// Boot: restore session if cookie is still valid
 (async function boot() {
   try {
     const { semesters } = await api('/api/semesters');
