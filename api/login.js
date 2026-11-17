@@ -8,17 +8,17 @@ module.exports = async (req, res) => {
 
   try {
     const r = await login(String(username).trim(), String(password));
-    if (!r.ok) return res.status(401).json({ error: r.error });
+    if (!r.ok) return res.status(r.status || 401).json({ error: r.error });
 
     const [profile, semesters] = await Promise.all([
-      getProfile(r.cookies).catch(() => ({})),
-      getSemesters(r.cookies).catch(() => []),
+      getProfile(r.jar).catch(() => ({})),
+      getSemesters(r.jar).catch(() => []),
     ]);
 
-    writeSession(res, r.cookies, 7200); // 2-hour portal session
+    writeSession(res, r.jar, 7200);
     return res.json({ ok: true, profile, semesters });
   } catch (e) {
-    console.error('[login]', e.message);
-    return res.status(502).json({ error: 'Portal unreachable. Try again in a moment.' });
+    console.log('[login] exception:', e.message);
+    return res.status(502).json({ error: 'Portal unreachable. Try again shortly.' });
   }
 };
