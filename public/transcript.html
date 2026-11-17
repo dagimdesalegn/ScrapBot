@@ -6,43 +6,67 @@
   <style>
     @page { size: A4; margin: 10mm; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #e5e7eb; font-family: "Times New Roman", Georgia, serif; color: #111; }
-    .page { width: 210mm; min-height: 297mm; margin: 10mm auto; padding: 10mm 8mm; background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+    body { margin: 0; background: #e5e7eb; font-family: "Times New Roman", Times, serif; color: #111; font-size: 11px; }
+    
+    .page { 
+      width: 210mm; min-height: 297mm; margin: 10mm auto; padding: 10mm 8mm; 
+      background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.15); position: relative; 
+      page-break-after: always; display: flex; flex-direction: column;
+    }
+    .page:last-child { page-break-after: auto; }
     @media print { body { background: #fff; } .page { margin: 0; box-shadow: none; width: auto; } }
 
-    h1 { font-size: 1rem; letter-spacing: .5px; margin: 0 0 2px; text-align: center; }
-    .title { font-size: .95rem; font-weight: 700; letter-spacing: 1px; text-align: center; margin-bottom: 8px; }
+    .page-content { flex: 1; }
+    
+    h1 { font-size: 16px; font-weight: bold; margin: 0 0 4px; text-align: center; letter-spacing: .5px; }
+    .subtitle { font-size: 14px; font-weight: bold; letter-spacing: 1px; text-align: center; margin-bottom: 12px; }
 
-    .head { display: flex; justify-content: space-between; font-size: .72rem; line-height: 1.35; margin-bottom: 6px; }
+    .head { display: flex; justify-content: space-between; font-size: 11px; line-height: 1.4; margin-bottom: 8px; }
     .head > div { flex: 1; }
     .head .mid { text-align: center; }
     .head .rt  { text-align: right; }
 
-    .info { border: 1px solid #111; font-size: .72rem; margin-bottom: 6px; }
+    .info-box { border: 1px solid #111; font-size: 11px; margin-bottom: 12px; }
     .info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid #111; }
     .info-row:last-child { border-bottom: 0; }
-    .info-cell { padding: 3px 5px; border-right: 1px solid #111; }
+    .info-cell { padding: 4px 6px; border-right: 1px solid #111; }
     .info-cell:last-child { border-right: 0; }
+    .info-cell b { font-weight: bold; }
 
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .sem { border: 1px solid #111; font-size: .68rem; page-break-inside: avoid; }
-    .sem .titlebar { text-align: center; font-weight: 700; padding: 3px 4px; border-bottom: 1px solid #111; background: #f3f3f3; }
-    .sem .subtitle { text-align: center; font-style: italic; font-size: .62rem; padding: 2px 4px; border-bottom: 1px solid #111; }
+    .continuation-head { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-bottom: 2px solid #111; padding-bottom: 4px; margin-bottom: 12px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    
+    .sem { border: 1px solid #111; font-size: 10px; page-break-inside: avoid; }
+    .sem .titlebar { text-align: center; font-weight: bold; padding: 4px; border-bottom: 1px solid #111; background: #eaeaea; }
+    .sem .subtitle-sm { text-align: center; font-style: italic; font-size: 9px; padding: 2px 4px; border-bottom: 1px solid #111; }
+    
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 1.5px 3px; border-bottom: 1px solid #cfcfcf; vertical-align: top; }
-    th { font-weight: 700; font-size: .62rem; text-align: left; background: #fafafa; }
+    th, td { padding: 2px 4px; border-bottom: 1px solid #ccc; vertical-align: top; }
+    th { font-weight: bold; font-size: 9px; text-align: left; background: #f9f9f9; border-bottom: 1px solid #111; }
     td.num, th.num { text-align: right; white-space: nowrap; }
     td.center { text-align: center; }
-    .sem .totals { display: grid; grid-template-columns: 1fr auto auto; border-top: 1px solid #111; font-weight: 700; }
-    .sem .totals > div { padding: 2px 4px; border-right: 1px solid #cfcfcf; }
-    .sem .totals > div:last-child { border-right: 0; }
-    .sem .summary { padding: 2px 4px; font-style: italic; font-size: .62rem; border-top: 1px solid #cfcfcf; text-align: center; }
+    
+    .totals { display: grid; grid-template-columns: 1fr auto auto; border-top: 1px solid #111; font-weight: bold; background: #f9f9f9; }
+    .totals > div { padding: 3px 4px; border-right: 1px solid #ccc; }
+    .totals > div:last-child { border-right: 0; }
+    
+    .summary { padding: 3px 4px; font-style: italic; font-size: 9px; border-top: 1px solid #111; text-align: center; background: #f9f9f9; }
 
-    .footer { margin-top: 8px; border-top: 1px solid #111; padding-top: 4px; font-size: .58rem; line-height: 1.35; }
-    .footer .sign { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; font-size: .68rem; }
-    .stamp { border: 2px solid #1f4ea1; color: #1f4ea1; padding: 4px 10px; transform: rotate(-6deg); font-weight: 700; font-size: .7rem; letter-spacing: .5px; }
-    .actions { position: fixed; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 10; }
-    .actions button { padding: 8px 12px; border-radius: 8px; border: 0; background: #2563eb; color: #fff; cursor: pointer; font-weight: 600; font-family: system-ui, sans-serif; }
+    .footer { 
+      margin-top: 12px; border-top: 1px solid #111; padding-top: 6px; font-size: 8px; line-height: 1.3; 
+      text-align: justify;
+    }
+    .footer-sign { 
+      display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; font-size: 10px; 
+    }
+    .stamp { 
+      border: 2px solid #1f4ea1; color: #1f4ea1; padding: 4px 10px; transform: rotate(-5deg); 
+      font-weight: bold; font-size: 11px; letter-spacing: 1px; position: absolute; right: 25mm; bottom: 35mm;
+    }
+
+    .actions { position: fixed; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 100; }
+    .actions button { padding: 8px 12px; border-radius: 8px; border: 0; background: #2563eb; color: #fff; cursor: pointer; font-weight: 600; font-family: system-ui, sans-serif; font-size: 14px; }
     .actions button.sec { background: #475569; }
     @media print { .actions { display: none; } }
   </style>
@@ -53,48 +77,7 @@
     <button class="sec" onclick="window.close()">Close</button>
   </div>
 
-  <div class="page">
-    <h1>JIMMA UNIVERSITY</h1>
-    <div class="title">STUDENT ACADEMIC RECORD</div>
-
-    <div class="head">
-      <div>
-        <div>OFFICE OF REGISTRAR</div>
-        <div>P.O.Box 378 JU, ETHIOPIA</div>
-        <div>Jimma Institute of Technology</div>
-      </div>
-      <div class="mid">Medium of Instruction: English</div>
-      <div class="rt">Degree Awarded On: <span id="degreeAwarded">—</span></div>
-    </div>
-
-    <div class="info">
-      <div class="info-row">
-        <div class="info-cell"><b>Full Name:</b> <span id="fullName">—</span></div>
-        <div class="info-cell"><b>Date of Birth:</b> <span id="dob">—</span></div>
-        <div class="info-cell"><b>Admission Classification:</b> <span id="admission">Regular</span></div>
-      </div>
-      <div class="info-row">
-        <div class="info-cell"><b>Id Number:</b> <span id="idNumber">—</span></div>
-        <div class="info-cell"><b>Sex:</b> <span id="sex">—</span></div>
-        <div class="info-cell"><b>From:</b> <span id="from">—</span></div>
-      </div>
-      <div class="info-row">
-        <div class="info-cell" style="grid-column:span 2"></div>
-        <div class="info-cell"><b>Department:</b> <span id="department">—</span></div>
-      </div>
-    </div>
-
-    <div class="grid" id="semestersGrid"></div>
-
-    <div class="footer">
-      <div><b>Grading System:</b> P = Pass, A+ = Excellent, A = Excellent, A− = Excellent, B+ = Very Good, B = Very Good, B− = Good, C+ = Good, C = Satisfactory, C− = Satisfactory, D = Unsatisfactory, F = Fail, I = Incomplete, NG = No Grade, W = Withdrawn. Points: A+ = 4, A = 4, A− = 3.75, B+ = 3.5, B = 3, B− = 2.75, C+ = 2.5, C = 2, C− = 1.75, D = 1, F = 0. *Course Repeated; TR = Credit Transfer. THE TRANSCRIPT IS OFFICIAL ONLY WHEN SIGNED AND SEALED BY THE REGISTRAR.</div>
-      <div class="sign">
-        <div>Date of Issue: __________________</div>
-        <div class="stamp">STUDENT COPY</div>
-        <div>_____________________<br>Registrar</div>
-      </div>
-    </div>
-  </div>
+  <div id="pages-container"></div>
 
   <script src="transcript.js"></script>
 </body>
