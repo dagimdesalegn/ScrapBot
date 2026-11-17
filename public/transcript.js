@@ -7,19 +7,44 @@ function getProfile() {
 }
 function fmtECTS(n) { return Number(n || 0).toFixed(1); }
 
-// Bulletproof course code parser that handles periods and exact formatting
+// Hardcoded dictionary for common Year 1 & 2 courses to guarantee codes are extracted
+const COURSE_CODES = {
+  'communicative english language skills i': 'FLEn 1011',
+  'physical fitness': 'SpSc 1011',
+  'general physics': 'Phys 1011',
+  'general psychology': 'Psyc 1011',
+  'mathematics for natural sciences': 'Math 1011',
+  'critical thinking': 'LoCT 1011',
+  'geography of ethiopia and the horn': 'GeES 1011',
+  'communicative english language skills ii': 'FLEn 1012',
+  'social anthropology': 'Anth 1012',
+  'applied mathematics i': 'Math 1041',
+  'enterprenuership': 'Mgmt 1012',
+  'introduction to emerging technologies': 'EmTe 1012',
+  'moral and civic education': 'MCiE 1012',
+  'computer programming': 'ECEg 2052',
+  'computer programing': 'ECEg 2052'
+};
+
 function splitCourse(raw) {
   let str = String(raw || '').trim();
-  let code = '';
   let title = str;
+  let code = '';
 
-  // Pattern 1: Code at the end with parentheses (e.g., "...(FLEn. 1011)")
+  // 1. Check hardcoded dictionary first to guarantee Year 1 & 2 codes
+  const lowerStr = str.toLowerCase();
+  for (const [key, val] of Object.entries(COURSE_CODES)) {
+    if (lowerStr.includes(key)) {
+      return { code: val, title: str.replace(new RegExp(key, 'i'), '').replace(/[()]/g, '').trim() || str };
+    }
+  }
+
+  // 2. Fallback to Regex for other courses (like Year 3 & 4)
   let m = str.match(/^(.*?)\s*\(([A-Za-z.]+\s*\d+)\)\s*$/);
   if (m) {
     title = m[1].trim();
     code = m[2].trim();
   } else {
-    // Pattern 2: Code at the beginning (e.g., "ECEg 2052 Computer Programing")
     m = str.match(/^([A-Za-z.]+\s*\d+)\s+(.*)$/);
     if (m) {
       code = m[1].trim();
@@ -27,7 +52,6 @@ function splitCourse(raw) {
     }
   }
 
-  // Clean up the code: remove periods and ensure single spacing (FLEn. 1011 -> FLEn 1011)
   if (code) {
     code = code.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
   }
@@ -153,15 +177,13 @@ async function load() {
     let html = '';
     const running = { cr: 0, pt: 0 };
 
-    // ================= PAGE 1: Years 1 & 2 + Split 3rd Column =================
+    // PAGE 1: Years 1 & 2 + 3rd Column
     if (years.length > 0) {
       const y1 = grouped[years[0]] || [];
       const y2 = years.length > 1 ? grouped[years[1]] : [];
       let leftCol = y1.map(s => renderSemesterBlock(s, running)).join('');
       let midCol  = y2.map(s => renderSemesterBlock(s, running)).join('');
       
-      // The 3rd column has two equal boxes (like Year 1 and 2), but empty.
-      // The bottom box contains the stamp.
       html += '<div class="page">' +
         '<div class="page-content">' +
           buildPageHeader(true, profile, degreeYear) +
@@ -178,7 +200,7 @@ async function load() {
       '</div>';
     }
 
-    // ================= PAGE 2: Years 3 & 4 + Tall Stamp Box =================
+    // PAGE 2: Years 3 & 4 + Tall Stamp Box
     if (years.length > 2) {
       let leftCol = '';
       for (let i = 2; i < years.length; i++) {
