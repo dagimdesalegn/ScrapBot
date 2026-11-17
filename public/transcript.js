@@ -7,31 +7,38 @@ function getProfile() {
 }
 function fmtECTS(n) { return Number(n || 0).toFixed(1); }
 
-// Clean, working regex to split code and title
+// Bulletproof regex to split the code from the name
 function splitCourse(raw) {
   let str = String(raw || '').trim();
-  let code = '';
-  let title = str;
 
-  // Case 1: "Course Name(FLEn. 1011)" or "Course Name(ECEg 2052)"
+  // 1. Match "Name(CODE)" or "Name (CODE)"
   let m = str.match(/^(.*?)\s*\(([A-Za-z.]+\s*\d+)\)\s*$/);
   if (m) {
-    title = m[1].trim();
-    code = m[2].trim();
-  } else {
-    // Case 2: "ECEg 2052 Computer Programing"
-    m = str.match(/^([A-Za-z.]+\s*\d+)\s+(.*)$/);
-    if (m) {
-      code = m[1].trim();
-      title = m[2].trim();
-    }
+    return { 
+      code: m[2].replace(/\./g, ' ').replace(/\s+/g, ' ').trim(), 
+      title: m[1].trim() 
+    };
   }
 
-  // Clean up code (remove periods, ensure space: FLEn. 1011 -> FLEn 1011)
-  if (code) {
-    code = code.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+  // 2. Match "CODE Name"
+  m = str.match(/^([A-Za-z.]+\s*\d+)\s+(.*)$/);
+  if (m) {
+    return { 
+      code: m[1].replace(/\./g, ' ').replace(/\s+/g, ' ').trim(), 
+      title: m[2].trim() 
+    };
   }
-  return { code, title };
+
+  // 3. Fallback: Match "Name CODE" without parentheses
+  m = str.match(/^(.*?)\s+([A-Za-z.]+\s*\d+)$/);
+  if (m) {
+    return { 
+      code: m[2].replace(/\./g, ' ').replace(/\s+/g, ' ').trim(), 
+      title: m[1].trim() 
+    };
+  }
+
+  return { code: '', title: str };
 }
 
 function renderSemesterBlock(sem, running) {
@@ -153,16 +160,16 @@ async function load() {
     let html = '';
     const running = { cr: 0, pt: 0 };
 
-    // ================= PAGE 1: Years 1 & 2 =================
+    // ================= PAGE 1: Strict 3x2 Grid =================
     if (years.length > 0) {
       const y1 = grouped[years[0]] || [];
       const y2 = years.length > 1 ? grouped[years[1]] : [];
 
-      // Generate blocks in chronological order
-      const y1s1 = y1[0] ? renderSemesterBlock(y1[0], running) : '';
-      const y1s2 = y1[1] ? renderSemesterBlock(y1[1], running) : '';
-      const y2s1 = y2[0] ? renderSemesterBlock(y2[0], running) : '';
-      const y2s2 = y2[1] ? renderSemesterBlock(y2[1], running) : '';
+      // Render the 4 semester blocks (or fallback to empty boxes if missing)
+      const y1s1 = y1[0] ? renderSemesterBlock(y1[0], running) : '<div class="sem"></div>';
+      const y1s2 = y1[1] ? renderSemesterBlock(y1[1], running) : '<div class="sem"></div>';
+      const y2s1 = y2[0] ? renderSemesterBlock(y2[0], running) : '<div class="sem"></div>';
+      const y2s2 = y2[1] ? renderSemesterBlock(y2[1], running) : '<div class="sem"></div>';
 
       html += '<div class="page">' +
         '<div class="page-content">' +
@@ -171,11 +178,11 @@ async function load() {
             /* Row 1 */
             y1s1 +
             y2s1 +
-            '<div class="sem"></div>' + // Empty box for grid 3 top
+            '<div class="sem"></div>' + 
             /* Row 2 */
             y1s2 +
             y2s2 +
-            '<div class="sem stamp-box"><div class="stamp">STUDENT COPY</div></div>' + // Stamp box for grid 3 bottom
+            '<div class="sem stamp-box"><div class="stamp">STUDENT COPY</div></div>' + 
           '</div>' +
         '</div>' +
         buildFooter() +
