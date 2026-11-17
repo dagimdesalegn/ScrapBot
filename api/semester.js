@@ -1,17 +1,17 @@
-const { login, getSemesterData } = require('../lib/portal');
-const { requireAuth } = require('../lib/crypto');
+const { getSemesterData } = require('../lib/portal');
 const { summarizeSemester } = require('../lib/grades');
+const { requireSession } = require('../lib/crypto');
 
 module.exports = async (req, res) => {
-  const auth = requireAuth(req, res); if (!auth) return;
+  const s = requireSession(req, res); if (!s) return;
   const { value, name } = req.query;
-  if (!value || !name) return res.status(400).json({ error: 'value and name are required' });
+  if (!value || !name) return res.status(400).json({ error: 'value and name required' });
   try {
-    const r = await login(auth.u, auth.p);
-    if (!r.success) return res.status(401).json({ error: 'Portal session expired.' });
-    const data = await getSemesterData(r.client, value, name);
+    const data = await getSemesterData(s.cookies, value, name);
     return res.json({ ...data, computed: summarizeSemester(data) });
   } catch (e) {
-    console.error(e); return res.status(502).json({ error: 'Failed to fetch semester' });
+    if (/rejected/i.test(e.message)) return res.status(401).json({ error: 'Session expired' });
+    console.error('[semester]', e.message);
+    return res.status(502).json({ error: 'Portal request failed' });
   }
 };
