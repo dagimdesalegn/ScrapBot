@@ -7,44 +7,19 @@ function getProfile() {
 }
 function fmtECTS(n) { return Number(n || 0).toFixed(1); }
 
-// Hardcoded dictionary for common Year 1 & 2 courses to guarantee codes are extracted
-const COURSE_CODES = {
-  'communicative english language skills i': 'FLEn 1011',
-  'physical fitness': 'SpSc 1011',
-  'general physics': 'Phys 1011',
-  'general psychology': 'Psyc 1011',
-  'mathematics for natural sciences': 'Math 1011',
-  'critical thinking': 'LoCT 1011',
-  'geography of ethiopia and the horn': 'GeES 1011',
-  'communicative english language skills ii': 'FLEn 1012',
-  'social anthropology': 'Anth 1012',
-  'applied mathematics i': 'Math 1041',
-  'enterprenuership': 'Mgmt 1012',
-  'introduction to emerging technologies': 'EmTe 1012',
-  'moral and civic education': 'MCiE 1012',
-  'computer programming': 'ECEg 2052',
-  'computer programing': 'ECEg 2052'
-};
-
+// Clean, working regex to split code and title
 function splitCourse(raw) {
   let str = String(raw || '').trim();
-  let title = str;
   let code = '';
+  let title = str;
 
-  // 1. Check hardcoded dictionary first to guarantee Year 1 & 2 codes
-  const lowerStr = str.toLowerCase();
-  for (const [key, val] of Object.entries(COURSE_CODES)) {
-    if (lowerStr.includes(key)) {
-      return { code: val, title: str.replace(new RegExp(key, 'i'), '').replace(/[()]/g, '').trim() || str };
-    }
-  }
-
-  // 2. Fallback to Regex for other courses (like Year 3 & 4)
+  // Case 1: "Course Name(FLEn. 1011)" or "Course Name(ECEg 2052)"
   let m = str.match(/^(.*?)\s*\(([A-Za-z.]+\s*\d+)\)\s*$/);
   if (m) {
     title = m[1].trim();
     code = m[2].trim();
   } else {
+    // Case 2: "ECEg 2052 Computer Programing"
     m = str.match(/^([A-Za-z.]+\s*\d+)\s+(.*)$/);
     if (m) {
       code = m[1].trim();
@@ -52,6 +27,7 @@ function splitCourse(raw) {
     }
   }
 
+  // Clean up code (remove periods, ensure space: FLEn. 1011 -> FLEn 1011)
   if (code) {
     code = code.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
   }
@@ -177,30 +153,36 @@ async function load() {
     let html = '';
     const running = { cr: 0, pt: 0 };
 
-    // PAGE 1: Years 1 & 2 + 3rd Column
+    // ================= PAGE 1: Years 1 & 2 =================
     if (years.length > 0) {
       const y1 = grouped[years[0]] || [];
       const y2 = years.length > 1 ? grouped[years[1]] : [];
-      let leftCol = y1.map(s => renderSemesterBlock(s, running)).join('');
-      let midCol  = y2.map(s => renderSemesterBlock(s, running)).join('');
-      
+
+      // Generate blocks in chronological order
+      const y1s1 = y1[0] ? renderSemesterBlock(y1[0], running) : '';
+      const y1s2 = y1[1] ? renderSemesterBlock(y1[1], running) : '';
+      const y2s1 = y2[0] ? renderSemesterBlock(y2[0], running) : '';
+      const y2s2 = y2[1] ? renderSemesterBlock(y2[1], running) : '';
+
       html += '<div class="page">' +
         '<div class="page-content">' +
           buildPageHeader(true, profile, degreeYear) +
           '<div class="grid-page1">' +
-            '<div class="col">' + leftCol + '</div>' +
-            '<div class="col">' + midCol + '</div>' +
-            '<div class="col">' +
-              '<div class="sem"></div>' + // Top empty box
-              '<div class="sem stamp-box"><div class="stamp">STUDENT COPY</div></div>' + // Bottom box with stamp
-            '</div>' +
+            /* Row 1 */
+            y1s1 +
+            y2s1 +
+            '<div class="sem"></div>' + // Empty box for grid 3 top
+            /* Row 2 */
+            y1s2 +
+            y2s2 +
+            '<div class="sem stamp-box"><div class="stamp">STUDENT COPY</div></div>' + // Stamp box for grid 3 bottom
           '</div>' +
         '</div>' +
         buildFooter() +
       '</div>';
     }
 
-    // PAGE 2: Years 3 & 4 + Tall Stamp Box
+    // ================= PAGE 2: Years 3 & 4 =================
     if (years.length > 2) {
       let leftCol = '';
       for (let i = 2; i < years.length; i++) {
@@ -210,8 +192,8 @@ async function load() {
         '<div class="page-content">' +
           buildPageHeader(false, profile, degreeYear) +
           '<div class="grid-page2">' +
-            '<div class="col">' + leftCol + '</div>' +
-            '<div class="sem stamp-box" style="height: 100%;">' +
+            '<div style="display:flex; flex-direction:column; gap:10px; height:100%;">' + leftCol + '</div>' +
+            '<div class="sem stamp-box">' +
               '<div class="stamp">STUDENT COPY</div>' +
             '</div>' +
           '</div>' +
