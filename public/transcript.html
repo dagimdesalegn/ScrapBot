@@ -58,15 +58,13 @@
     .continuation-head .id-no { position: absolute; right: 0; top: 0; }
 
     /* ---------- GRID LAYOUTS ---------- */
-    /* Page 1: 3 Columns */
     .grid-page1 {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
       align-items: stretch; 
-      flex: 1; /* Fills available height */
+      flex: 1; 
     }
-    /* Page 2: 2 Columns */
     .grid-page2 {
       display: grid;
       grid-template-columns: 2fr 1fr;
@@ -86,8 +84,9 @@
     .sem {
       border: 1px solid #111; font-size: 10px;
       display: flex; flex-direction: column; 
-      flex: 1; /* Forces boxes to be equal height */
+      flex: 1; /* Forces all boxes to be equal height */
       background: #fff;
+      min-height: 150px; /* Fallback height */
     }
     .sem table { flex-grow: 1; } 
     
