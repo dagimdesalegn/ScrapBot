@@ -7,25 +7,30 @@ function getProfile() {
 }
 function fmtECTS(n) { return Number(n || 0).toFixed(1); }
 
-// Bulletproof course code parser
+// Bulletproof course code parser that handles periods and exact formatting
 function splitCourse(raw) {
   let str = String(raw || '').trim();
   let code = '';
   let title = str;
 
-  // Matches typical code format anywhere in the string: 2-6 letters followed by 3-4 numbers
-  // Handles "FLEN 1011", "CoSc4036", "(CoSc 4036)"
-  const codeRegex = /\(?([A-Za-z]{2,6}\s*\d{3,4})\)?/;
-  const match = str.match(codeRegex);
-
-  if (match) {
-    code = match[1].replace(/\s+/g, ' '); 
-    // Ensure a space between letters and numbers (FLEN1011 -> FLEN 1011)
-    code = code.replace(/^([A-Za-z]+)\s*(\d+)/, '$1 $2');
-    // Remove code from title and clean up parens
-    title = str.replace(match[0], '').replace(/[()]/g, '').trim();
+  // Pattern 1: Code at the end with parentheses (e.g., "...(FLEn. 1011)")
+  let m = str.match(/^(.*?)\s*\(([A-Za-z.]+\s*\d+)\)\s*$/);
+  if (m) {
+    title = m[1].trim();
+    code = m[2].trim();
+  } else {
+    // Pattern 2: Code at the beginning (e.g., "ECEg 2052 Computer Programing")
+    m = str.match(/^([A-Za-z.]+\s*\d+)\s+(.*)$/);
+    if (m) {
+      code = m[1].trim();
+      title = m[2].trim();
+    }
   }
 
+  // Clean up the code: remove periods and ensure single spacing (FLEn. 1011 -> FLEn 1011)
+  if (code) {
+    code = code.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+  }
   return { code, title };
 }
 
@@ -54,7 +59,7 @@ function renderSemesterBlock(sem, running) {
   running.cr += semCr;
   running.pt += semPt;
   const cumGpa = c.portalCgpa || (running.cr ? running.pt / running.cr : 0);
-  const summaryText = c.semesterStatus || 'Promoted';
+  const summaryText = c.semesterStatus || 'Pass';
 
   return '<div class="sem">' +
     '<div class="titlebar">' + esc(sem.text) + '</div>' +
@@ -148,35 +153,32 @@ async function load() {
     let html = '';
     const running = { cr: 0, pt: 0 };
 
-    // Page 1 (Years 1 & 2) + Split 3rd Grid Box
+    // ================= PAGE 1: Years 1 & 2 + Split 3rd Column =================
     if (years.length > 0) {
       const y1 = grouped[years[0]] || [];
       const y2 = years.length > 1 ? grouped[years[1]] : [];
       let leftCol = y1.map(s => renderSemesterBlock(s, running)).join('');
       let midCol  = y2.map(s => renderSemesterBlock(s, running)).join('');
       
-      // 3rd Column: Top empty box, bottom box with stamp
-      const rightCol = '<div class="col">' +
-          '<div class="sem"></div>' +
-          '<div class="sem" style="display:flex; align-items:center; justify-content:center;">' +
-              '<div class="stamp">STUDENT COPY</div>' +
-          '</div>' +
-      '</div>';
-
+      // The 3rd column has two equal boxes (like Year 1 and 2), but empty.
+      // The bottom box contains the stamp.
       html += '<div class="page">' +
         '<div class="page-content">' +
           buildPageHeader(true, profile, degreeYear) +
           '<div class="grid-page1">' +
             '<div class="col">' + leftCol + '</div>' +
             '<div class="col">' + midCol + '</div>' +
-            rightCol +
+            '<div class="col">' +
+              '<div class="sem"></div>' + // Top empty box
+              '<div class="sem stamp-box"><div class="stamp">STUDENT COPY</div></div>' + // Bottom box with stamp
+            '</div>' +
           '</div>' +
         '</div>' +
         buildFooter() +
       '</div>';
     }
 
-    // Page 2 (Years 3 & 4) + Stamp in a single right box
+    // ================= PAGE 2: Years 3 & 4 + Tall Stamp Box =================
     if (years.length > 2) {
       let leftCol = '';
       for (let i = 2; i < years.length; i++) {
@@ -187,8 +189,8 @@ async function load() {
           buildPageHeader(false, profile, degreeYear) +
           '<div class="grid-page2">' +
             '<div class="col">' + leftCol + '</div>' +
-            '<div class="sem" style="display:flex; align-items:center; justify-content:center;">' +
-                '<div class="stamp">STUDENT COPY</div>' +
+            '<div class="sem stamp-box" style="height: 100%;">' +
+              '<div class="stamp">STUDENT COPY</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -199,7 +201,7 @@ async function load() {
     document.getElementById('pages-container').innerHTML = html;
   } catch (e) {
     document.getElementById('pages-container').innerHTML =
-      '<p style="padding:20px;color:#b91c1c;font-family:system-ui;">' + esc(e.message) + '</p>';
+      '<p style="padding:20px;color:#b91c1c;font-family:system-ui;font-weight:bold;">' + esc(e.message) + '</p>';
   }
 }
 
