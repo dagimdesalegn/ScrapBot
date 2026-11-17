@@ -1,10 +1,12 @@
 {
   "name": "ju-portal-web",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "engines": { "node": "26.x" },
+  "engines": { "node": "22.x" },
   "dependencies": {
     "axios": "^1.7.7",
-    "cheerio": "^1.0.0"
+    "axios-cookiejar-support": "^5.0.2",
+    "cheerio": "^1.0.0",
+    "tough-cookie": "^5.0.0"
   }
 }
